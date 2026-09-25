@@ -873,17 +873,34 @@ def prony_methods(method: Literal["prony", "esprit"],
         A list of tuples containing the amplitudes and phases
         of our approximation
     """
-    if method != "prony":
-        n = len(signal)-n
-    hankel0 = hankel(c=signal[:n], r=signal[n - 1: -1])
-    hankel1 = hankel(c=signal[1: n + 1], r=signal[n:])
+    signal = np.asarray(signal, dtype=np.complex128).ravel()
+    if n < 1:
+        raise ValueError("n must be at least 1.")
+
     if method == "prony":
+        hankel0 = hankel(c=signal[:n], r=signal[n - 1: -1])
+        hankel1 = hankel(c=signal[1: n + 1], r=signal[n:])
         pencil_matrix = lstsq(hankel0.T, hankel1.T)[0]
         phases = eigvals(pencil_matrix.T)
     elif method == "esprit":
-        U1, _, _ = svd(hankel0)
-        pencil_matrix = np.linalg.pinv(U1.T @ hankel0) @ (U1.T @ hankel1)
+        size = len(signal) // 2
+        hankel0 = hankel(signal[:size], signal[size - 1:])
+        _, singular_values, vectors = svd(
+            hankel0, full_matrices=False, check_finite=False
+        )
+        tolerance = (
+            singular_values[0]
+            * max(hankel0.shape)
+            * np.finfo(singular_values.dtype).eps
+        )
+        rank = np.count_nonzero(singular_values > tolerance)
+        n = min(n, rank)
+        vectors1 = vectors[:n, :-1]
+        vectors2 = vectors[:n, 1:]
+        pencil_matrix = np.linalg.pinv(vectors1.T) @ vectors2.T
         phases = eigvals(pencil_matrix)
+    else:
+        raise ValueError("method must be 'prony' or 'esprit'.")
     vandermonte = np.array(
         [[phase**k for phase in phases] for k in range(len(signal))])
     amplitudes = lstsq(vandermonte, signal)[0]

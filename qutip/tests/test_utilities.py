@@ -269,6 +269,23 @@ class TestFitting:
                 self.eval_prony(len(x), params), y, rtol=1e-4
             )
 
+    def test_esprit_fits_delayed_peak(self):
+        times = np.linspace(0, 10, 100)
+        width = 0.3
+        signal = (
+            np.exp(-(times / width) ** 2)
+            + 0.7 * np.exp(-((times - 7) / width) ** 2)
+        )
+
+        rmse, params = utils.prony_methods("esprit", signal, 20)
+        fitted = self.eval_prony(len(times), params)
+        delayed_peak = np.argmin(np.abs(times - 7))
+
+        assert rmse < 5e-3
+        assert fitted[delayed_peak] == pytest.approx(
+            signal[delayed_peak], abs=2e-2
+        )
+
 
 @pytest.mark.parametrize('j', [60, 100, 130, 250, 400])
 def test_clebsch_large_j(j):
