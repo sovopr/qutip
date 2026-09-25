@@ -190,6 +190,20 @@ class TestMatVec:
         S2 = qutip.sprepost(U1, U2)
         assert S1 == S2
 
+    def test_generalized_lindblad_dissipator(self):
+        a = qutip.destroy(3)
+        b = qutip.num(3)
+        expected = (
+            qutip.sprepost(a, b.dag())
+            - 0.5 * qutip.santicommutator(b.dag() * a)
+        )
+
+        dissipator = qutip.lindblad_dissipator(a, b)
+
+        assert dissipator == expected
+        psi = (qutip.basis(3, 0) + 1j * qutip.basis(3, 1)).unit()
+        assert dissipator(qutip.ket2dm(psi)).tr() == pytest.approx(0)
+
     def testLiouvillianImplem(self):
         """
         Superoperator: Randomized comparison of standard and reference
