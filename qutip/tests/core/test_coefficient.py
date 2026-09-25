@@ -42,6 +42,14 @@ def f_qtv4(t, args):
     return f(t, args["w"])
 
 
+def f_qtv4_renamed(time, args):
+    return f(time, args["w"])
+
+
+def f_qtv4_positional_only(time, args, /):
+    return f(time, args["w"])
+
+
 def g_qtv4(t, args):
     return g(t, args["w"])
 
@@ -493,8 +501,12 @@ def test_coefficient_parallel(map_func):
         _assert_eq_over_interval(coeff, expected)
 
 
-def test_warning():
+@pytest.mark.parametrize(
+    "function", [f_qtv4, f_qtv4_renamed, f_qtv4_positional_only]
+)
+def test_warning(function):
     with pytest.warns(FutureWarning, match="The signature"):
-        coeff = coefficient(f_qtv4, args={"w":1})
+        coeff = coefficient(function, args={"w": 1})
 
     assert isinstance(coeff, Coefficient)
+    assert coeff(0.5) == pytest.approx(np.exp(0.5 * np.pi))
