@@ -162,8 +162,10 @@ def mesolve(
                        options=options)
 
     solver = MESolver(H, c_ops, options=options)
-
-    return solver.run(rho0, tlist, e_ops=e_ops)
+    try:
+        return solver.run(rho0, tlist, e_ops=e_ops)
+    finally:
+        solver._integrator.close()
 
 
 class MESolver(SESolver):

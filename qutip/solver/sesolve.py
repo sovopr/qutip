@@ -117,7 +117,10 @@ def sesolve(
     """
     H = QobjEvo(H, args=args, tlist=tlist)
     solver = SESolver(H, options=options)
-    return solver.run(psi0, tlist, e_ops=e_ops)
+    try:
+        return solver.run(psi0, tlist, e_ops=e_ops)
+    finally:
+        solver._integrator.close()
 
 
 class SESolver(Solver):

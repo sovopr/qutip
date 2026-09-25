@@ -7,6 +7,8 @@ __all__ = [
     'IntegratorScipylsoda',
 ]
 
+import warnings
+
 import numpy as np
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
@@ -14,10 +16,14 @@ from qutip.core import data as _data
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
-import warnings
 
 
-class IntegratorScipyAdams(Integrator):
+class _IntegratorScipy(Integrator):
+    def close(self):
+        self._ode_solver.set_f_params()
+
+
+class IntegratorScipyAdams(_IntegratorScipy):
     """
     Integrator using Scipy `ode` with zvode integrator using adams method.
     Ordinary Differential Equation solver by netlib
@@ -215,7 +221,7 @@ class IntegratorScipyBDF(IntegratorScipyAdams):
     }
 
 
-class IntegratorScipyDop853(Integrator):
+class IntegratorScipyDop853(_IntegratorScipy):
     """
     Integrator using Scipy `ode` with dop853 integrator. Eight order
     runge-kutta method by Dormand & Prince. Use fortran implementation

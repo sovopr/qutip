@@ -213,6 +213,9 @@ class Integrator:
 
         #TODO: why cut tlist[0] here, not in solver?
 
+    def close(self):
+        """Release resources held by the integrator."""
+
     def reset(self, hard: bool = False):
         """Reset internal state of the ODE solver."""
         if self._is_set:

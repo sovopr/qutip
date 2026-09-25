@@ -1,12 +1,16 @@
-import numpy as np
+import gc
+import pickle
 from types import FunctionType
+import weakref
+
+import numpy as np
+import pytest
 
 import qutip
 from qutip.solver.mesolve import mesolve, MESolver
+from qutip.solver.integrator.scipy_integrator import IntegratorScipyAdams
 from qutip.solver.krylovsolve import krylovsolve
 from qutip.solver.solver_base import Solver
-import pickle
-import pytest
 
 # Deactivate warning for test without cython
 from qutip.core.coefficient import WARN_MISSING_MODULE
@@ -17,6 +21,36 @@ all_ode_method = [
     method for method, integrator in MESolver.avail_integrators().items()
     if integrator.rhs_format == "callable"
 ]
+
+
+def test_mesolve_releases_temporary_integrator(monkeypatch):
+    references = []
+    original_init = IntegratorScipyAdams.__init__
+
+    def track_instance(instance, *args, **kwargs):
+        original_init(instance, *args, **kwargs)
+        references.append(weakref.ref(instance))
+
+    monkeypatch.setattr(IntegratorScipyAdams, "__init__", track_instance)
+    a = qutip.destroy(2)
+
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        mesolve(
+            a.dag() * a,
+            qutip.fock_dm(2, 0),
+            [0, 0.1],
+            c_ops=[0.1 * a],
+            options={"progress_bar": None},
+        )
+        assert len(references) == 1
+        assert references[0]() is None
+    finally:
+        if gc_was_enabled:
+            gc.enable()
+        gc.collect()
+
 
 def fidelitycheck(out1, out2, rho0vec):
     fid = np.zeros(len(out1.states))
